@@ -4,7 +4,7 @@
 set -Eeuo pipefail
 
 release_path_old="github.com/golang/protobuf/protoc-gen-go"
-release_path_new="github.com/protocolbuffers/protobuf-go/protoc-gen-go"
+release_path_new="google.golang.org/protobuf/cmd/protoc-gen-go"
 
 first_version_new_repo="1.20.0"
 
