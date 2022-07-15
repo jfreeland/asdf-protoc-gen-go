@@ -21,7 +21,7 @@ install() {
   echo "Creating bin directory"
   mkdir -p "${bin_install_path}"
 
-  GO_BIN=$bin_install_path go install "${release_path}@v${version}"
+  GOBIN="${bin_install_path}" go install "${release_path}@v${version}"
 }
 
 install "$ASDF_INSTALL_TYPE" "$ASDF_INSTALL_VERSION" "$ASDF_INSTALL_PATH"
