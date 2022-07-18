@@ -1,19 +1,49 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC2155
 
-set -Eeuo pipefail
+set -euo pipefail
 
-release_path_old="github.com/golang/protobuf/protoc-gen-go"
-release_path_new="google.golang.org/protobuf/cmd/protoc-gen-go"
+current_script_path=${BASH_SOURCE[0]}
+plugin_dir=$(dirname "$(dirname "$current_script_path")")
 
-first_version_new_repo="1.20.0"
+# shellcheck disable=SC1091 source=../lib/envs.bash
+. "${plugin_dir}/lib/envs.bash"
+
+function fail() {
+	printf "* ERROR: asdf-%s %s\\n" "$TOOL_NAME" "$*"
+	exit 1
+}
+
+# validate version(non-ref) is in list-all versions
+if [ "$ASDF_INSTALL_TYPE" == "version" ]; then
+	results="$(asdf list all v)"
+	if ! grep -q "^$ASDF_INSTALL_VERSION$" <<<"$results"; then
+		fail "version \"$ASDF_INSTALL_VERSION\" not supported. \"asdf list all $TOOL_NAME\" will list available versions."
+	fi
+
+	# Warn if user attempts to install a version(non-ref) that the plugin might not support
+	WARN_ABOUT_SUPPORTED_VERSION="no"
+	# validate weekly versions
+	if [[ $ASDF_INSTALL_VERSION =~ "weekly" ]] && awk "BEGIN {exit !($ASDF_INSTALL_VERSION < $MIN_SUPPORTED_WEEKLY_VERSION)}"; then
+		WARN_ABOUT_SUPPORTED_VERSION="yes"
+	fi
+	# validate non-weekly versions
+	if [[ ! $ASDF_INSTALL_VERSION =~ "weekly" ]] && awk "BEGIN {exit !($ASDF_INSTALL_VERSION < $MIN_SUPPORTED_VERSION)}"; then
+		WARN_ABOUT_SUPPORTED_VERSION="yes"
+	fi
+	if [ $WARN_ABOUT_SUPPORTED_VERSION == "yes" ]; then
+		printf "* WARNING asdf-%s was developed for versions \"%s\" or \"%s\" and later.\\n" "$TOOL_NAME" "$MIN_SUPPORTED_VERSION" "$MIN_SUPPORTED_WEEKLY_VERSION"
+		printf "          Versions before this are not guaranteed to work.\\n"
+	fi
+fi
 
 install() {
   local version=$2
-  release_path=$release_path_old
-  lowest=$(printf '%s\n' "$first_version_new_repo" "$version" | sort -V | head -n 1)
-  if [[ "$lowest" == "$first_version_new_repo" ]]; then
-    release_path=$release_path_new
+  local download_path=""
+  lowest=$(printf '%s\n' "$NEW_REPO_FIRST_VERSION" "$version" | sort -V | head -n 1)
+  if [[ "$lowest" == "$NEW_REPO_FIRST_VERSION" ]]; then
+    download_path=$DOWNLOAD_PATH_NEW
+  else
+    download_path=$DOWNLOAD_PATH_OLD
   fi
   local install_path=$3
   local bin_install_path="$install_path/bin"
@@ -21,7 +51,7 @@ install() {
   echo "Creating bin directory"
   mkdir -p "${bin_install_path}"
 
-  GOBIN="${bin_install_path}" go install "${release_path}@v${version}"
+  GOBIN="${bin_install_path}" go install "${download_path}@v${version}"
 }
 
 install "$ASDF_INSTALL_TYPE" "$ASDF_INSTALL_VERSION" "$ASDF_INSTALL_PATH"
