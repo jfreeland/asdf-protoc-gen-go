@@ -28,4 +28,4 @@ function sort_versions() {
 
 TAGS_OLD="$(list_github_tags "$GIT_REPO_OLD")"
 TAGS_NEW="$(list_github_tags "$GIT_REPO_NEW")"
-echo "$TAGS_OLD" "$TAGS_NEW" | sort_versions | xargs echo # asdf_allow: echo
+printf "$TAGS_OLD\n$TAGS_NEW" | sort_versions | xargs echo # asdf_allow: echo
